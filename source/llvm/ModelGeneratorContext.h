@@ -113,7 +113,7 @@ public:
      * manager loaded with all the requested optimizers.
      * NULL if no optimization is specified.
      */
-    llvm::FunctionPassManager *getFunctionPassManager() const;
+    llvm::legacy::FunctionPassManager *getFunctionPassManager() const;
 
     llvm::IRBuilder<> &getBuilder() const;
 
@@ -184,11 +184,11 @@ private:
 
     llvm::LLVMContext *context;
     llvm::ExecutionEngine *executionEngine;
-    llvm::Module *module;
+    llvm::Module* module;
 
     llvm::IRBuilder<> *builder;
 
-    llvm::FunctionPassManager *functionPassManager;
+    llvm::legacy::FunctionPassManager *functionPassManager;
 
     unsigned options;
 

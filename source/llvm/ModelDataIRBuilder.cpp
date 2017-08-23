@@ -106,7 +106,7 @@ llvm::Value* ModelDataIRBuilder::createGEP(ModelDataFields field,
         const Twine& name)
 {
     const char* fieldName = LLVMModelDataSymbols::getFieldName(field);
-    return builder.CreateStructGEP(modelData, (unsigned)field, Twine(fieldName) + Twine("_gep"));
+    return builder.CreateStructGEP(nullptr, modelData, (unsigned)field, Twine(fieldName) + Twine("_gep"));
 }
 
 
@@ -161,9 +161,14 @@ llvm::StructType* ModelDataIRBuilder::getCSRSparseStructType(
 
         if (engine)
         {
-#if (LLVM_VERSION_MAJOR >= 3) && (LLVM_VERSION_MINOR >= 2)
+#if (LLVM_VERSION_MAJOR >= 3) && (LLVM_VERSION_MINOR >= 2) 
+    #if LLVM_VERSION_MINOR <= 7
             const DataLayout *dl = engine->getDataLayout();
             uint64_t llvm_size = dl->getTypeStoreSize(structType);
+    #else
+            const DataLayout& dl = engine->getDataLayout();
+            uint64_t llvm_size = dl.getTypeStoreSize(structType);
+    #endif
 #else
             const TargetData* td = engine->getTargetData();
             uint64_t llvm_size = td->getTypeStoreSize(structType);
@@ -674,8 +679,13 @@ unsigned ModelDataIRBuilder::getModelDataSize(llvm::Module *module, llvm::Execut
     StructType *structType = getStructType(module);
 
 #if (LLVM_VERSION_MAJOR >= 3) && (LLVM_VERSION_MINOR >= 2)
-    const DataLayout *dl = engine->getDataLayout();
-    uint64_t llvm_size = dl->getTypeStoreSize(structType);
+    #if LLVM_VERSION_MINOR <= 7
+            const DataLayout *dl = engine->getDataLayout();
+            uint64_t llvm_size = dl->getTypeStoreSize(structType);
+    #else
+            const DataLayout& dl = engine->getDataLayout();
+            uint64_t llvm_size = dl.getTypeStoreSize(structType);
+    #endif
 #else
     const TargetData* td = engine->getTargetData();
     uint64_t llvm_size = td->getTypeStoreSize(structType);
@@ -738,9 +748,9 @@ void LLVMModelDataIRBuilderTesting::createAccessors(Module *module)
         for(Function::arg_iterator i = getSizeFunc->arg_begin();
                 i != getSizeFunc->arg_end(); i++)
         {
-            Value *v = i;
+            Value *v = (Value*) &(*i);
             //v->dump();
-            getArgValues.push_back(i);
+            getArgValues.push_back(v);
         }
 
         ModelDataIRBuilder mdbuilder (getArgValues[0], symbols, builder);
@@ -803,9 +813,9 @@ pair<Function*, Function*> LLVMModelDataIRBuilderTesting::createFloatingSpeciesA
         for (Function::arg_iterator i = result.first->arg_begin();
                 i != result.first->arg_end(); i++)
         {
-            Value *v = i;
+            Value *v = (Value*) &(*i);
             //v->dump();
-            getArgValues.push_back(i);
+            getArgValues.push_back(v);
 
         }
 
@@ -837,9 +847,9 @@ pair<Function*, Function*> LLVMModelDataIRBuilderTesting::createFloatingSpeciesA
         for (Function::arg_iterator i = result.second->arg_begin();
                 i != result.second->arg_end(); i++)
         {
-            Value *v = i;
+            Value *v = (Value*) &(*i);
             //v->dump();
-            setArgValues.push_back(i);
+            getArgValues.push_back(v);
 
         }
 

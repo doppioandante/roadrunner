@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 #include <math.h>
+#include <memory>
 
 using namespace llvm;
 using namespace std;
@@ -153,16 +154,17 @@ ModelGeneratorContext::ModelGeneratorContext(std::string const &sbml,
         }
         
         context = new LLVMContext();
-        // Make the module, which holds all the code.
-        module = new Module("LLVM Module", *context);
 
         builder = new IRBuilder<>(*context);
 
-        // engine take ownership of module
-        EngineBuilder engineBuilder(module);
+        // Create the module, which holds all the code, and pass it to the builder.
+        module = new Module("LLVM Module", *context);
+        // engineBuilder take ownership of module
+        llvm::EngineBuilder engineBuilder{std::unique_ptr<Module>(module)};
 
         if (useMCJIT()) {
-            engineBuilder.setUseMCJIT(true);
+            // FIXME(doppioandante)
+            //engineBuilder.setUseMCJIT(true);
         }
 
         engineBuilder.setErrorStr(errString);
@@ -264,13 +266,11 @@ ModelGeneratorContext::ModelGeneratorContext(libsbml::SBMLDocument const *doc,
         }
 
         context = new LLVMContext();
-        // Make the module, which holds all the code.
-        module = new Module("LLVM Module", *context);
 
         builder = new IRBuilder<>(*context);
 
         // engine take ownership of module
-        EngineBuilder engineBuilder(module);
+        EngineBuilder engineBuilder{std::unique_ptr<Module>(module)};
 
         //engineBuilder.setEngineKind(EngineKind::JIT);
         engineBuilder.setErrorStr(errString);
@@ -320,7 +320,7 @@ ModelGeneratorContext::ModelGeneratorContext() :
 
     errString = new std::string();
 
-    EngineBuilder engineBuilder(module);
+    llvm::EngineBuilder engineBuilder{std::unique_ptr<Module>(module)};
     //engineBuilder.setEngineKind(EngineKind::JIT);
     engineBuilder.setErrorStr(errString);
     executionEngine = engineBuilder.create();
@@ -412,7 +412,7 @@ bool ModelGeneratorContext::useMCJIT() const
     return options &  rr::ModelGenerator::USE_MCJIT;
 }
 
-llvm::FunctionPassManager* ModelGeneratorContext::getFunctionPassManager() const
+llvm::legacy::FunctionPassManager* ModelGeneratorContext::getFunctionPassManager() const
 {
     return functionPassManager;
 }
@@ -421,7 +421,7 @@ void ModelGeneratorContext::initFunctionPassManager()
 {
     if (options & ModelGenerator::OPTIMIZE)
     {
-        functionPassManager = new FunctionPassManager(module);
+        functionPassManager = new legacy::FunctionPassManager(module);
 
     // Set up the optimizer pipeline.  Start with registering info about how the
     // target lays out data structures.
@@ -433,14 +433,16 @@ void ModelGeneratorContext::initFunctionPassManager()
 #elif (LLVM_VERSION_MINOR <= 4)
     // don't alter behavior retroactively on LLVM 3.4 and earlier
     functionPassManager->add(new DataLayout(*executionEngine->getDataLayout()));
-#else // LLVM_VERSION_MINOR > 4
+#elif LLVM_VERSION_MINOR <= 6
     // Needed for LLVM 3.5 regardless of architecture
     // also, should use DataLayoutPass(module) per Renato (http://reviews.llvm.org/D4607)
     functionPassManager->add(new DataLayoutPass(module));
+#else
+    //FIXME: no DataLayoutPass
 #endif
 
          // Provide basic AliasAnalysis support for GVN.
-        functionPassManager->add(createBasicAliasAnalysisPass());
+        functionPassManager->add(createBasicAAWrapperPass());
 
 
         if (options & ModelGenerator::OPTIMIZE_INSTRUCTION_SIMPLIFIER)
@@ -717,7 +719,8 @@ static void createLibraryFunctions(Module* module)
 static void createLibraryFunction(llvm::LibFunc::Func funcId,
         llvm::FunctionType *funcType, Module* module)
 {
-    TargetLibraryInfo targetLib;
+    TargetLibraryInfoImpl impl;
+    TargetLibraryInfo targetLib(impl);
 
     if (targetLib.has(funcId))
     {

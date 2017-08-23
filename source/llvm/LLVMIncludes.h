@@ -55,7 +55,6 @@
 #elif (LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR == 1)
 #include <llvm/DerivedTypes.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
-#include <llvm/ExecutionEngine/JIT.h>
 #include <llvm/LLVMContext.h>
 #include <llvm/Module.h>
 #include <llvm/PassManager.h>
@@ -70,16 +69,17 @@
 
 #include <llvm/Analysis/Passes.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
-#include <llvm/ExecutionEngine/JIT.h>
 #include <llvm/ExecutionEngine/MCJIT.h>
 #include <llvm/Support/DynamicLibrary.h>
-#include <llvm/PassManager.h>
+#include <llvm/IR/LegacyPassManager.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Support/raw_ostream.h>
-#include <llvm/Target/TargetLibraryInfo.h>
+#include <llvm/Analysis/TargetLibraryInfo.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/Host.h>
+#include <llvm/Analysis/BasicAliasAnalysis.h>
+
 
 #ifdef _MSC_VER
 #pragma warning( pop )

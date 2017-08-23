@@ -100,7 +100,7 @@ protected:
     /**
      * function pass manager. Null if no optimization.
      */
-    llvm::FunctionPassManager *functionPassManager;
+    llvm::legacy::FunctionPassManager *functionPassManager;
 
     /**
      * the options bit field that was passed into the top level load method.
@@ -135,7 +135,7 @@ protected:
         for (llvm::Function::arg_iterator ai = function->arg_begin();
                 ai != function->arg_end(); ++ai, ++i)
         {
-            llvm::Value *arg = ai;
+            llvm::Value *arg = (llvm::Value*) &(*ai);
             arg->setName(argNames[i]);
             args[i] = arg;
         }

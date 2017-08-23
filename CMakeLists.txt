@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 2.8)
 project(rr)
 
+if(RR_USE_CXX11)
+    SET(CMAKE_CXX_STANDARD 11)
+endif(RR_USE_CXX11)
+
 # These will be the defaults ...
 if(WIN32)
     SET(RR_BUILDS_ROOT      "c:/builds")
@@ -51,7 +55,7 @@ if(EXISTS ${LLVM_INSTALL_PREFIX}/share/llvm/cmake)
     # we're building a JIT compiler with support for binary code (no interpreter):
     # this sets the LLVM_LIBRARIES var to be the list of required LLVM libs
     # to link with.
-    llvm_map_components_to_libraries(LLVM_LIBRARIES jit native)
+    llvm_map_components_to_libraries(LLVM_LIBRARIES mcjit native)
 
 else()
     message(STATUS "Looking for LLVM installed without CMake")
